@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Google Meet Utils",
+  "version": "1.0",
+  "description": "Chrome extension for Google Meets utilities.",
+  "permissions": ["activeTab", "scripting"],
+  "background": {
+    "service_worker": "dist/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://meet.google.com/*"],
+      "js": ["dist/content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "host_permissions": ["<all_urls>"]
+}
