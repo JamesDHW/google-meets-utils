@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc",
+    "serve": "tsc --watch",
     "tsc": "tsc --noEmit"
   },
   "keywords": [],
