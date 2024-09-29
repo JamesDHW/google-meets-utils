@@ -5,16 +5,15 @@
   "description": "Chrome extension for Google Meets utilities.",
   "permissions": ["activeTab", "scripting"],
   "background": {
-    "service_worker": "dist/background.js"
+    "service_worker": "dist/background.js",
+    "type": "module"
   },
   "content_scripts": [
     {
       "matches": ["https://meet.google.com/*"],
-      "js": ["dist/content.js"]
+      "js": ["dist/content.js"],
+      "type": "module"
     }
   ],
-  "action": {
-    "default_popup": "popup.html"
-  },
   "host_permissions": ["<all_urls>"]
 }
