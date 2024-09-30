@@ -11,7 +11,6 @@ import { Server, Socket } from 'socket.io';
 import { Inject } from '@nestjs/common';
 import { EventHandlerService } from './services/EventHandlerService';
 import { EVENT_HANDLERS_PROVIDER_NAMESPACE_TOKEN } from './events.constants';
-import { CORS_CONFIG } from 'src/main';
 
 type EventPayload = {
   service_name: string;
@@ -20,7 +19,12 @@ type EventPayload = {
 };
 
 @WebSocketGateway({
-  cors: CORS_CONFIG,
+  cors: {
+    origin: 'https://meet.google.com',
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+  transports: ['websocket', 'polling'],
 })
 export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
