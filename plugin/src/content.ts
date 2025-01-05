@@ -16,16 +16,6 @@ window.addEventListener('load', () => {
     leaveCallButton?.click();
   });
 
-  const setButtonStyles = (button: HTMLButtonElement) => {
-    button.style.backgroundColor = 'rgb(234, 67, 53)';
-    button.style.color = 'white';
-    button.style.padding = '1rem .75rem';
-    button.style.borderRadius = '100px';
-    button.style.border = 'none';
-    button.style.cursor = 'pointer';
-    button.style.marginLeft = '10px';
-  };
-
   const mountButton = () => {
     const leaveCallButton = document.querySelector('[aria-label="Leave call"]');
     const controlPanel = leaveCallButton?.parentNode?.parentNode;
@@ -39,7 +29,14 @@ window.addEventListener('load', () => {
     button.textContent = 'Mark as Ended';
     button.setAttribute('aria-label', 'Send Info');
 
-    setButtonStyles(button);
+    button.style.backgroundColor = 'rgb(234, 67, 53)';
+    button.style.color = 'white';
+    button.style.padding = '1rem .75rem';
+    button.style.borderRadius = '100px';
+    button.style.border = 'none';
+    button.style.cursor = 'pointer';
+
+    button.style.marginLeft = '10px';
 
     button.addEventListener('click', sendRoomData);
 

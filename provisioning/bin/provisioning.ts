@@ -1,14 +1,22 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { ProvisioningStack } from '../lib/provisioning-stack';
-import { initializeDotenv } from '../env';
+import { VpcStack } from '../lib/resources/vpc-stack';
+import { RedisStack } from '../lib/resources/redis-stack';
+import { config as initializeDotenv } from 'dotenv';
 
 initializeDotenv();
 
 const app = new cdk.App();
 
-new ProvisioningStack(app, 'GoogleMeetsUtilsStack', {
+const vpcStack = new VpcStack(app, 'VpcStack', {
+  env: {
+    account: process.env.CDK_DEFAULT_ACCOUNT,
+    region: process.env.CDK_DEFAULT_REGION,
+  },
+});
+
+new RedisStack(app, 'RedisStack', vpcStack.vpc, {
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: process.env.CDK_DEFAULT_REGION,

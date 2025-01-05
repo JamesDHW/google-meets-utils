@@ -8,14 +8,14 @@ export class VpcStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    this.vpc = new ec2.Vpc(this, 'GoogleMeetsUtilsVPC', {
-      maxAzs: 1,
+    this.vpc = new ec2.Vpc(this, 'EventsVPC', {
+      maxAzs: 2,
       natGateways: 1,
     });
 
     new cdk.CfnOutput(this, 'VpcId', {
       value: this.vpc.vpcId,
-      description: 'Google Meets Utils VPC',
+      description: 'The ID of the VPC',
     });
   }
 }

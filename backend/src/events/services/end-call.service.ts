@@ -1,4 +1,5 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Socket } from 'socket.io';
 import { EventHandlerService } from './EventHandlerService';
 import { Redis } from 'ioredis';
 import { InjectRedis } from '@nestjs-modules/ioredis';
@@ -16,45 +17,46 @@ export class EndCallService implements EventHandlerService {
 
   handleMessage = async (
     action: string,
-    clientId: string,
-    roomId: string,
+    _data: any,
+    client: Socket,
   ): Promise<void> => {
     switch (action) {
       case 'signal-end-call':
-        await this.handleSignalEndCall(clientId, roomId);
+        this.handleSignalEndCall(client);
         break;
       default:
         throw new Error('Unknown action');
     }
   };
 
-  onClientConnect = async (clientId: string, roomId: string): Promise<void> => {
-    console.log(`EndCallService: Client ${clientId} connected`);
+  onClientConnect = async (client: Socket): Promise<void> => {
+    console.log(`EndCallService: Client ${client.id} connected`);
+    const roomId = this.getRoomIdOrThrow(client);
 
     await this.redis.set(
-      `${this.getRoomKey(roomId)}:${this.getUserKey(clientId)}`,
+      `${this.getRoomKey(roomId)}:${this.getUserKey(client.id)}`,
       'false',
       'EX',
       60 * 60 * 24,
     );
   };
 
-  onClientDisconnect = async (
-    clientId: string,
-    roomId: string,
-  ): Promise<void> => {
-    console.log(`EndCallService: Client ${clientId} disconnected`);
+  onClientDisconnect = async (client: Socket): Promise<void> => {
+    console.log(`EndCallService: Client ${client.id} disconnected`);
+    const roomId = this.getRoomIdOrThrow(client);
 
     await this.redis.del(
-      `${this.getRoomKey(roomId)}:${this.getUserKey(clientId)}`,
+      `${this.getRoomKey(roomId)}:${this.getUserKey(client.id)}`,
     );
   };
 
-  private handleSignalEndCall = async (clientId: string, roomId: string) => {
+  private handleSignalEndCall = async (client: Socket) => {
     console.log('Handling signal-end-call event');
 
+    const roomId = this.getRoomIdOrThrow(client);
+
     await this.redis.set(
-      `${this.getRoomKey(roomId)}:${this.getUserKey(clientId)}`,
+      `${this.getRoomKey(roomId)}:${this.getUserKey(client.id)}`,
       'true',
     );
 
@@ -69,6 +71,15 @@ export class EndCallService implements EventHandlerService {
       this.eventsGateway.server?.emit('end-call');
     }
   };
+
+  private getRoomIdOrThrow(client: Socket): string {
+    const roomId = client.handshake.query.room_id;
+
+    if (typeof roomId !== 'string') {
+      throw new Error('Room ID is required');
+    }
+    return roomId;
+  }
 
   private getRoomKey(roomId: string) {
     return `room:${roomId}`;
