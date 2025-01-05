@@ -1,16 +1,22 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
+import { WebSocketStack } from './resources/websocket-stack';
+import { VpcStack } from './resources/vpc-stack';
+import { RedisStack } from './resources/redis-stack';
 
 export class ProvisioningStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // The code that defines your stack goes here
+    const AWS_ENV = {
+      account: process.env.CDK_DEFAULT_ACCOUNT,
+      region: process.env.CDK_DEFAULT_REGION,
+    };
 
-    // example resource
-    // const queue = new sqs.Queue(this, 'ProvisioningQueue', {
-    //   visibilityTimeout: cdk.Duration.seconds(300)
-    // });
+    const vpcStack = new VpcStack(this, 'VpcStack', { env: AWS_ENV });
+
+    new RedisStack(this, 'RedisStack', vpcStack.vpc, { env: AWS_ENV });
+
+    new WebSocketStack(this, 'WebSocketStack', { env: AWS_ENV });
   }
 }

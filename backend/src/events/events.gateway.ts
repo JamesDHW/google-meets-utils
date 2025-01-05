@@ -3,11 +3,8 @@ import {
   MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
-  SubscribeMessage,
-  WebSocketGateway,
-  WebSocketServer,
 } from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
+import { Socket } from 'socket.io';
 import { Inject } from '@nestjs/common';
 import { EventHandlerService } from './services/EventHandlerService';
 import { EVENT_HANDLERS_PROVIDER_NAMESPACE_TOKEN } from './events.constants';
@@ -18,21 +15,11 @@ type EventPayload = {
   data: any;
 };
 
-@WebSocketGateway({
-  cors: {
-    origin: 'https://meet.google.com',
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
-  transports: ['websocket', 'polling'],
-})
 export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     @Inject(EVENT_HANDLERS_PROVIDER_NAMESPACE_TOKEN)
     private readonly handlers: EventHandlerService[],
   ) {}
-
-  @WebSocketServer() server: Server | undefined;
 
   handleConnection(client: Socket) {
     console.log('Client connected:', client.id);
@@ -46,12 +33,9 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     );
   }
 
-  @SubscribeMessage('event')
-  handleEvent(
-    @MessageBody()
-    { service_name, action, data }: EventPayload,
-    @ConnectedSocket() client: Socket,
-  ): void {
+  // New method to handle incoming events from API Gateway
+  handleEvent(eventPayload: EventPayload): void {
+    const { service_name, action, data } = eventPayload;
     const handler = this.handlers.find(
       ({ SERVICE_NAME }) => SERVICE_NAME === service_name,
     );
@@ -60,6 +44,6 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       throw new Error(`No handler found for event type: ${service_name}`);
     }
 
-    handler.handleMessage(action, data, client);
+    handler.handleMessage(action, data, null); // Pass null for client if not needed
   }
 }
