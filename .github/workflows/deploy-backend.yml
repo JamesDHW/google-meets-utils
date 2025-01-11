@@ -1,0 +1,50 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+  workflow_run:
+    branches:
+      - main
+    workflows: ['Deploy Infrastructure']
+    types:
+      - completed
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    if: |
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and tag Docker image
+        run: docker build -t google-meets-extension-service ./backend
+
+      - name: Save Docker image as a tar file
+        run: docker save google-meets-extension-service > google-meets-extension-service.tar
+
+      - name: Transfer Docker image to EC2 using scp
+        # TODO: setup EC2_SSH_KEY and EC2_HOST
+        run: |
+          scp -i ${{ secrets.EC2_SSH_KEY }} \
+            -o StrictHostKeyChecking=no \
+            google-meets-extension-service.tar ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/google-meets-extension-service.tar
+
+      - name: Deploy Docker image on EC2 using SSH
+        # TODO: setup EC2_SSH_KEY and EC2_HOST
+        run: |
+          ssh -i ${{ secrets.EC2_SSH_KEY }} \
+            -o StrictHostKeyChecking=no \
+            ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+            docker load < /home/ec2-user/google-meets-extension-service.tar
+            docker stop $(docker ps -q) || true
+            docker run -d -p 3000:3000 google-meets-extension-service
+          EOF

@@ -1,24 +1,16 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
-import * as cdk from 'aws-cdk-lib';
-import { VpcStack } from '../lib/resources/vpc-stack';
-import { RedisStack } from '../lib/resources/redis-stack';
+import { App } from 'aws-cdk-lib';
 import { config as initializeDotenv } from 'dotenv';
+import { APP_SCOPE, GoogleMeetsStack } from '../lib/google-meets-stack';
 
 initializeDotenv();
 
-const app = new cdk.App();
-
-const vpcStack = new VpcStack(app, 'VpcStack', {
+const stackProps = {
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: process.env.CDK_DEFAULT_REGION,
   },
-});
+};
 
-new RedisStack(app, 'RedisStack', vpcStack.vpc, {
-  env: {
-    account: process.env.CDK_DEFAULT_ACCOUNT,
-    region: process.env.CDK_DEFAULT_REGION,
-  },
-});
+new GoogleMeetsStack(new App(), `${APP_SCOPE}-Stack`, stackProps);
