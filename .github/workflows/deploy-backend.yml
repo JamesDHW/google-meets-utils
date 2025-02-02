@@ -41,36 +41,26 @@ jobs:
         run: |
           OUTPUTS=$(aws cloudformation describe-stacks --stack-name GoogleMeetsChromeExtension-Stack --query "Stacks[0].Outputs" --output json)
           echo "Outputs: $OUTPUTS"
-          echo "::set-output name=outputs::$OUTPUTS"
+          echo "OUTPUTS_JSON=$OUTPUTS" >> $GITHUB_ENV
 
-      - name: Load Output Values
+      - name: Extract EC2 Public IP
+        id: extract_ip
         run: |
-          echo "${{ steps.get_outputs.outputs.outputs }}" > outputs.json
-          export OUTPUTS=$(cat outputs.json)
-          # Extract specific output values as needed
-          export INSTANCE_IP=$(echo $OUTPUTS | jq -r '.[] | select(.OutputKey=="InstanceIP") | .OutputValue')
-          echo "Instance IP: $INSTANCE_IP"
+          INSTANCE_IP=$(echo '${{ env.OUTPUTS_JSON }}' | jq -r '.[] | select(.OutputValue | test("^\\d+\\.\\d+\\.\\d+\\.\\d+$")) | .OutputValue')
+          echo "EC2 Public IP: $INSTANCE_IP"
+          echo "INSTANCE_IP=$INSTANCE_IP" >> $GITHUB_ENV
 
-      - name: Build and tag Docker image
-        run: docker build -t google-meets-extension-service ./backend
-
-      - name: Save Docker image as a tar file
-        run: docker save google-meets-extension-service > google-meets-extension-service.tar
-
-      - name: Transfer Docker image to EC2 using scp
-        # TODO: setup EC2_SSH_KEY and EC2_HOSTs
+      - name: Transfer application files to EC2
         run: |
           scp -i ${{ secrets.EC2_SSH_KEY }} \
             -o StrictHostKeyChecking=no \
-            google-meets-extension-service.tar ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/google-meets-extension-service.tar
+            -r ./backend docker-compose.yml ec2-user@${{ env.INSTANCE_IP }}:/home/ec2-user/
 
-      - name: Deploy Docker image on EC2 using SSH
-        # TODO: setup EC2_SSH_KEY and EC2_HOST
+      - name: Deploy application on EC2 using SSH
         run: |
           ssh -i ${{ secrets.EC2_SSH_KEY }} \
             -o StrictHostKeyChecking=no \
-            ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-            docker load < /home/ec2-user/google-meets-extension-service.tar
-            docker stop $(docker ps -q) || true
-            docker run -d -p 3000:3000 google-meets-extension-service
+            ec2-user@${{ env.INSTANCE_IP }} << 'EOF'
+            cd /home/ec2-user
+            docker-compose up -d
           EOF

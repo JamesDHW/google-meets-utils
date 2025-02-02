@@ -53,7 +53,11 @@ export class GoogleMeetsEc2Instance extends Construct {
       role,
       vpcSubnets: { subnetType: SubnetType.PUBLIC },
       associatePublicIpAddress: true,
-      keyName: keyPair.keyName,
+      /*
+        NOTE: // must create this before with:
+        `aws ec2 create-key-pair --key-name GoogleMeetsKeyPair --query 'KeyMaterial' --output text > GoogleMeetsKeyPair.pem && chmod 400 ./GoogleMeetsKeyPair.pem`
+      */
+      keyName: 'GoogleMeetsKeyPair',
     });
 
     // User Data Script (Installs Docker and defines startup script)
