@@ -1,4 +1,3 @@
-import * as cdk from 'aws-cdk-lib';
 import {
   Instance,
   InstanceType,
@@ -10,15 +9,24 @@ import {
   SecurityGroup,
   UserData,
   IVpc,
+  SubnetType,
+  CfnKeyPair,
 } from 'aws-cdk-lib/aws-ec2';
 import { Construct } from 'constructs';
 import { ManagedPolicy, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { CfnOutput } from 'aws-cdk-lib';
 
-export class GoogleMeetsEc2Instance {
+export class GoogleMeetsEc2Instance extends Construct {
   public readonly instance: Instance;
 
   constructor(scope: Construct, id: string, vpc: IVpc) {
-    const securityGroup = new SecurityGroup(scope, `${id}:SecurityGroup`, {
+    super(scope, id);
+
+    const keyPair = new CfnKeyPair(this, `${id}:EC2KeyPair`, {
+      keyName: 'GoogleMeetsKeyPair',
+    });
+
+    const securityGroup = new SecurityGroup(this, `${id}:SecurityGroup`, {
       vpc,
       description: 'Allow SSH and WebSocket',
       allowAllOutbound: true,
@@ -30,19 +38,22 @@ export class GoogleMeetsEc2Instance {
       'Allow WebSocket traffic',
     );
 
-    const role = new Role(scope, `${id}:InstanceRole`, {
-      assumedBy: new ServicePrincipal('amazonaws.com'),
+    const role = new Role(this, `${id}:InstanceRole`, {
+      assumedBy: new ServicePrincipal('ec2.amazonaws.com'),
     });
     role.addManagedPolicy(
       ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'),
     );
 
-    this.instance = new Instance(scope, `${id}:Instance`, {
+    this.instance = new Instance(this, `${id}:Instance`, {
       vpc,
       instanceType: InstanceType.of(InstanceClass.T3, InstanceSize.MICRO),
       machineImage: MachineImage.latestAmazonLinux2023(),
       securityGroup,
       role,
+      vpcSubnets: { subnetType: SubnetType.PUBLIC },
+      associatePublicIpAddress: true,
+      keyName: keyPair.keyName,
     });
 
     // User Data Script (Installs Docker and defines startup script)
@@ -56,7 +67,7 @@ export class GoogleMeetsEc2Instance {
       'sudo usermod -a -G docker ec2-user',
 
       // add public key to authorized_keys
-      'echo "YOUR_PUBLIC_SSH_KEY" >> /home/ec2-user/.ssh/authorized_keys',
+      `echo ${process.env.PUBLIC_SSH_KEY} >> /home/ec2-user/.ssh/authorized_keys`,
       'chmod 600 /home/ec2-user/.ssh/authorized_keys',
       'chown ec2-user:ec2-user /home/ec2-user/.ssh/authorized_keys',
 
@@ -79,5 +90,15 @@ export class GoogleMeetsEc2Instance {
     );
 
     this.instance.addUserData(userData.render());
+
+    new CfnOutput(this, `${id}:InstancePublicIp`, {
+      value: this.instance.instancePublicIp,
+      description: 'Public IP of the EC2 Instance',
+    });
+
+    new CfnOutput(this, `${id}:SSHCommand`, {
+      value: `ssh -i ./GoogleMeetsKeyPair.pem ec2-user@${this.instance.instancePublicIp}`,
+      description: 'SSH command to connect to EC2 instance',
+    });
   }
 }

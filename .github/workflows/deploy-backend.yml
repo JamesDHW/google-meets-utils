@@ -25,6 +25,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Get CloudFormation Outputs
+        id: get_outputs
+        run: |
+          OUTPUTS=$(aws cloudformation describe-stacks --stack-name GoogleMeetsChromeExtension-Stack --query "Stacks[0].Outputs" --output json)
+          echo "Outputs: $OUTPUTS"
+          echo "::set-output name=outputs::$OUTPUTS"
+
+      - name: Load Output Values
+        run: |
+          echo "${{ steps.get_outputs.outputs.outputs }}" > outputs.json
+          export OUTPUTS=$(cat outputs.json)
+          # Extract specific output values as needed
+          export INSTANCE_IP=$(echo $OUTPUTS | jq -r '.[] | select(.OutputKey=="InstanceIP") | .OutputValue')
+          echo "Instance IP: $INSTANCE_IP"
+
       - name: Build and tag Docker image
         run: docker build -t google-meets-extension-service ./backend
 
@@ -32,7 +47,7 @@ jobs:
         run: docker save google-meets-extension-service > google-meets-extension-service.tar
 
       - name: Transfer Docker image to EC2 using scp
-        # TODO: setup EC2_SSH_KEY and EC2_HOST
+        # TODO: setup EC2_SSH_KEY and EC2_HOSTs
         run: |
           scp -i ${{ secrets.EC2_SSH_KEY }} \
             -o StrictHostKeyChecking=no \

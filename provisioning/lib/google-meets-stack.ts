@@ -12,8 +12,8 @@ export class GoogleMeetsStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    const vpcStack = new GoogleMeetsVpc(scope, `${APP_SCOPE}-VpcStack`);
+    const vpcStack = new GoogleMeetsVpc(this, `${APP_SCOPE}-VpcStack`);
 
-    new GoogleMeetsEc2Instance(scope, `${APP_SCOPE}-Ec2Stack`, vpcStack.vpc);
+    new GoogleMeetsEc2Instance(this, `${APP_SCOPE}-Ec2Stack`, vpcStack.vpc);
   }
 }

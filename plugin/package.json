@@ -1,5 +1,5 @@
 {
-  "name": "google-meet-utils",
+  "name": "google-meets-utils",
   "version": "1.0.0",
   "description": "Chrome extension for Google Meets utilities.",
   "main": "index.js",

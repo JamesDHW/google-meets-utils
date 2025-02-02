@@ -2,7 +2,7 @@
     <img src="https://fonts.gstatic.com/s/i/productlogos/meet_2020q4/v1/web-96dp/logo_meet_2020q4_color_2x_web_96dp.png" width="200" alt="Google Meet Logo" />
 </p>
 
-# Google Meet Utils Chrome Extension
+# Google Meets Utils Chrome Extension
 
 ## Overview
 
