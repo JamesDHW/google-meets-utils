@@ -36,22 +36,26 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ secrets.AWS_DEPLOYMENT_ROLE_NAME }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Get CloudFormation Outputs
-        id: get_outputs
+      - name: Get EC2 Host IPv4 CloudFormation Outputs
         run: |
           OUTPUTS=$(aws cloudformation describe-stacks --stack-name GoogleMeetsChromeExtension-Stack --query "Stacks[0].Outputs" --output json)
           INSTANCE_IP=$(echo "$OUTPUTS" | jq -r '.[] | select(.Description == "Public IP of the EC2 Instance") | .OutputValue')
           echo "INSTANCE_IP=$INSTANCE_IP" >> $GITHUB_ENV
 
+      - name: Setup SSH Key
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
+
       - name: Transfer application files to EC2
         run: |
-          scp -i ${{ secrets.EC2_SSH_KEY }} \
+          scp -i private_key.pem \
             -o StrictHostKeyChecking=no \
             -r ./backend docker-compose.yml ec2-user@${{ env.INSTANCE_IP }}:/home/ec2-user/
 
       - name: Deploy application on EC2 using SSH
         run: |
-          ssh -i ${{ secrets.EC2_SSH_KEY }} \
+          ssh -i private_key.pem \
             -o StrictHostKeyChecking=no \
             ec2-user@${{ env.INSTANCE_IP }} << 'EOF'
             cd /home/ec2-user
