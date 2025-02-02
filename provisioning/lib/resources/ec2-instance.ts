@@ -70,13 +70,15 @@ export class GoogleMeetsEc2Instance extends Construct {
       'sudo service docker start',
       'sudo usermod -a -G docker ec2-user',
 
+      // Install Docker compose
+      'mkdir -p ~/.docker/cli-plugins/',
+      'curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose',
+      'chmod +x ~/.docker/cli-plugins/docker-compose',
+
       // add public key to authorized_keys
       `echo ${process.env.PUBLIC_SSH_KEY} >> /home/ec2-user/.ssh/authorized_keys`,
       'chmod 600 /home/ec2-user/.ssh/authorized_keys',
       'chown ec2-user:ec2-user /home/ec2-user/.ssh/authorized_keys',
-
-      // Create application directory
-      'mkdir -p /home/ec2-user/app',
 
       // Write the startup script
       'cat <<EOF > /home/ec2-user/startup.sh',
