@@ -22,15 +22,16 @@ export class GoogleMeetsEc2Instance extends Construct {
   constructor(scope: Construct, id: string, vpc: IVpc) {
     super(scope, id);
 
-    const keyPair = new CfnKeyPair(this, `${id}:EC2KeyPair`, {
-      keyName: 'GoogleMeetsKeyPair',
-    });
-
     const securityGroup = new SecurityGroup(this, `${id}:SecurityGroup`, {
       vpc,
       description: 'Allow SSH and WebSocket',
       allowAllOutbound: true,
     });
+    securityGroup.addIngressRule(
+      Peer.anyIpv4(),
+      Port.tcp(443),
+      'Allow HTTPS traffic',
+    );
     securityGroup.addIngressRule(Peer.anyIpv4(), Port.tcp(22), 'Allow SSH');
     securityGroup.addIngressRule(
       Peer.anyIpv4(),
@@ -75,6 +76,13 @@ export class GoogleMeetsEc2Instance extends Construct {
       'curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose',
       'chmod +x ~/.docker/cli-plugins/docker-compose',
 
+      // SSL Certificate
+      'sudo yum update -y',
+      'sudo yum install -y certbot',
+      `sudo certbot certonly --standalone --agree-tos --email ${process.env.SSL_CERT_EMAIL} -d ${process.env.SSL_CERT_DOMAIN}`,
+      // renew cert and restart every day
+      '(crontab -l 2>/dev/null; echo "0 0 * * * certbot renew --quiet && sudo docker compose restart app") | crontab -',
+
       // add public key to authorized_keys
       `echo ${process.env.PUBLIC_SSH_KEY} >> /home/ec2-user/.ssh/authorized_keys`,
       'chmod 600 /home/ec2-user/.ssh/authorized_keys',
@@ -83,7 +91,7 @@ export class GoogleMeetsEc2Instance extends Construct {
       // Write the startup script
       'cat <<EOF > /home/ec2-user/startup.sh',
       '#!/bin/bash',
-      'cd /home/ec2-user/app',
+      'cd /home/ec2-user/backend',
       'docker compose down || true', // Stop any existing containers
       'docker compose up -d', // Start the app
       'EOF',

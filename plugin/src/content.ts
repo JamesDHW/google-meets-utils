@@ -3,7 +3,7 @@ import { io } from 'socket.io-client';
 window.addEventListener('load', () => {
   const room_id = window.location.pathname.split('/')[1];
 
-  const socket = io('http://localhost:3000', {
+  const socket = io(`wss://jdhw.duckdns.org:3000`, {
     withCredentials: true,
     query: { room_id },
   });

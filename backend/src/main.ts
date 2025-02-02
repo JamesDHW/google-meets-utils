@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { config as initializeDotenv } from 'dotenv';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
+import { readFileSync } from 'fs';
 
 initializeDotenv();
 
@@ -20,8 +21,17 @@ export const CORS_CONFIG: CorsOptions = {
   credentials: true,
 };
 
+const httpsOptions = {
+  key: readFileSync(
+    `/etc/letsencrypt/live/${process.env.SSL_CERT_DOMAIN}/privkey.pem`,
+  ),
+  cert: readFileSync(
+    `/etc/letsencrypt/live/${process.env.SSL_CERT_DOMAIN}/cert.pem`,
+  ),
+};
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { httpsOptions });
 
   app.enableCors(CORS_CONFIG);
 

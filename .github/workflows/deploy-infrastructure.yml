@@ -11,6 +11,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: production
 
     permissions:
       id-token: write
@@ -39,4 +40,6 @@ jobs:
       - name: Deploy CDK Stack
         run: |
           cd provisioning
+          export SSL_CERT_DOMAIN=${{ env.SSL_CERT_DOMAIN }}
+          export SSL_CERT_EMAIL=${{ env.SSL_CERT_EMAIL }}
           npx cdk deploy --all --require-approval never
